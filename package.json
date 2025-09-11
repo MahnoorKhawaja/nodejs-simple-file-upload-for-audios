@@ -1,0 +1,28 @@
+{
+    "name": "nodejs-simple-file-upload",
+    "version": "1.0.0",
+    "description": "",
+    "main": "server.js",
+    "dependencies": {
+        "@azure/storage-blob": "^12.28.0",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.1",
+        "ejs": "^3.1.8",
+        "express": "^4.21.2",
+        "multer": "^1.4.5-lts.1"
+    },
+    "scripts": {
+        "test": "echo \"No tests\" && exit 0",
+        "start": "node server.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Majidkn/nodejs-simple-file-upload.git"
+    },
+    "author": "",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Majidkn/nodejs-simple-file-upload/issues"
+    },
+    "homepage": "https://github.com/Majidkn/nodejs-simple-file-upload#readme"
+}
