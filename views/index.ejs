@@ -1,77 +1,87 @@
-const express = require('express');
-const multer = require('multer');
-const { BlobServiceClient } = require('@azure/storage-blob');
-const cors = require('cors');
-const path = require('path');
+<!DOCTYPE html>
+<html lang="en">
 
-const app = express();
-const port = process.env.PORT || 3000;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// View engine setup
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-// Multer setup
-const upload = multer({ storage: multer.memoryStorage() });
-
-// Azure Blob setup
-const blobServiceClient = BlobServiceClient.fromConnectionString(process.env.AZURE_STORAGE_CONNECTION_STRING);
-const containerClient = blobServiceClient.getContainerClient(process.env.AUDIO_CONTAINER_NAME);
-
-// ✅ Upload Audio
-app.post(['/upload', '/audios/upload'], upload.single('file'), async(req, res) => {
-    if (!req.file) {
-        return res.status(400).send('⚠️ No file uploaded');
-    }
-
-    try {
-        const blobName = `${Date.now()}-${req.file.originalname}`;
-        const blockBlobClient = containerClient.getBlockBlobClient(blobName);
-
-        await blockBlobClient.uploadData(req.file.buffer, {
-            blobHTTPHeaders: { blobContentType: req.file.mimetype }
-        });
-
-        console.log(`✅ Uploaded "${req.file.originalname}" to Azure Blob`);
-
-        res.redirect('/audios');
-    } catch (err) {
-        console.error('❌ Upload error:', err.message);
-        res.status(500).send('❌ Upload to Azure Blob failed');
-    }
-});
-
-// ✅ Root route → redirect to /audios
-app.get('/', (req, res) => {
-    res.redirect('/audios');
-});
-
-// ✅ Audios page
-app.get('/audios', async(req, res) => {
-    try {
-        let audioUrls = [];
-        for await (const blob of containerClient.listBlobsFlat()) {
-            audioUrls.push(containerClient.getBlockBlobClient(blob.name).url);
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Upload</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f7f9fc;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
         }
+        
+        .upload-box {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+        
+        .form-control {
+            border-radius: 6px;
+        }
+        
+        .btn-upload {
+            width: 100%;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        
+        .gallery audio {
+            width: 100%;
+            outline: none;
+        }
+    </style>
+</head>
 
-        res.render('index', { audios: audioUrls });
-    } catch (err) {
-        console.error('❌ Error listing audios:', err.message);
-        res.status(500).send('❌ Failed to fetch audios');
-    }
-});
+<body>
 
-// ✅ Health check
-app.get('/health', (req, res) => {
-    res.status(200).send('OK');
-});
+    <!-- Upload Form -->
+    <div class="upload-box">
+        <h2 class="text-center">Upload Your Audios</h2>
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="mb-3">
+                <input class="form-control" type="file" name="file" id="file" accept="audio/*" required>
+            </div>
+            <button type="submit" class="btn btn-primary btn-upload">Upload</button>
+        </form>
+    </div>
 
-// Start server
-app.listen(port, () => {
-    console.log(`🚀 Server running at http://localhost:${port}`);
-});
+    <!-- Audio Gallery -->
+    <% if (audios && audios.length > 0) { %>
+        <h3 class="mb-4">Uploaded Audios</h3>
+        <div class="row gallery">
+            <% audios.forEach(url => { %>
+                <div class="col-md-6 mb-4">
+                    <audio controls>
+                        <source src="<%= url %>" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                    <p class="mt-2 text-muted small">
+                        <%= url %>
+                    </p>
+                </div>
+                <% }) %>
+        </div>
+        <% } else { %>
+            <p class="text-muted">No audios uploaded yet.</p>
+            <% } %>
+
+                <script>
+                    // Reset file input on load
+                    window.onload = () => {
+                        document.getElementById("file").value = "";
+                    };
+                </script>
+</body>
+
+</html>
